@@ -42,10 +42,10 @@ export default function AdminLayout() {
       <AppBar position="fixed" sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}>
         <Toolbar>
           <Box sx={{ width: 32, height: 32, borderRadius: '8px', background: 'linear-gradient(135deg, #1a73e8, #34a853)', display: 'flex', alignItems: 'center', justifyContent: 'center', mr: 1.5 }}>
-            <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>MD</Typography>
+            <Typography sx={{ color: '#fff', fontWeight: 700, fontSize: 14 }}>SP</Typography>
           </Box>
           <Typography variant="h6" noWrap sx={{ fontWeight: 600, fontSize: 18 }}>
-            Mening Deregim
+            ScanPay
           </Typography>
           <Typography sx={{ ml: 1, color: '#80868b', fontSize: 14 }}>Admin</Typography>
         </Toolbar>

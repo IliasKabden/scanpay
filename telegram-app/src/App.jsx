@@ -386,7 +386,7 @@ export default function App(){
       <div className="mi"><span>{t.city}</span><span className="mi-v">{city}</span></div>
       <div className="mi"><span>{t.chain}</span><span className="mi-v">Solana</span></div>
     </div>
-    <div className="footer">Mening Deregim<br/><span>v1.0 &middot; Solana</span></div>
+    <div className="footer">ScanPay<br/><span>v1.0 &middot; Solana</span></div>
   </div>}
 
   {/* NAV */}

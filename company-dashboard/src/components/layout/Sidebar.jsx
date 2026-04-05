@@ -36,10 +36,10 @@ export default function Sidebar({ tab, setTab }) {
       <Box sx={{ px: 2, py: 1.8 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.3 }}>
           <Box sx={{ width: 32, height: 32, borderRadius: '8px', background: 'linear-gradient(135deg, #1a73e8, #34a853)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: 11 }}>MD</Typography>
+            <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: 11 }}>SP</Typography>
           </Box>
           <Box>
-            <Typography sx={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>Mening Deregim</Typography>
+            <Typography sx={{ fontSize: 14, fontWeight: 700, lineHeight: 1.2 }}>ScanPay</Typography>
             <Typography sx={{ fontSize: 9, color: '#80868b' }}>Data Marketplace</Typography>
           </Box>
         </Box>

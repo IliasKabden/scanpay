@@ -28,7 +28,7 @@ async function handleUpdate(update) {
         msg.from.first_name || '', msg.from.last_name || '', msg.from.username || ''
       );
     }
-    await sendMessage(chatId, '👋 <b>Добро пожаловать в Mening Deregim!</b>\n\n📱 Отправьте фото или скриншот чека — и получите деньги.\n\n💡 <b>Подсказка:</b> скриншот из Kaspi, Halyk, Jusan — тоже работает!\n\n🔗 Данные защищены блокчейном Solana.');
+    await sendMessage(chatId, '👋 <b>Добро пожаловать в ScanPay!</b>\n\n📱 Отправьте фото или скриншот чека — и получите деньги.\n\n💡 <b>Подсказка:</b> скриншот из Kaspi, Halyk, Jusan — тоже работает!\n\n🔗 Данные защищены блокчейном Solana.');
     return;
   }
 

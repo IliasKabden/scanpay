@@ -57,7 +57,7 @@ export default function DashboardPage() {
       <Card sx={{ mb: 3, background: 'linear-gradient(135deg, #1a73e8 0%, #34a853 100%)', border: 'none' }}>
         <CardContent sx={{ py: 2.5, px: 3 }}>
           <Typography sx={{ fontSize: 22, fontWeight: 700, color: '#fff', mb: 0.5 }}>
-            Mening Deregim — Admin Panel
+            ScanPay — Admin Panel
           </Typography>
           <Typography sx={{ fontSize: 13, color: 'rgba(255,255,255,.85)', mb: 1, maxWidth: 600 }}>
             Маркетплейс данных на блокчейне Solana. Пользователи сканируют чеки в Telegram, AI обрабатывает данные, компании покупают анонимизированную аналитику с автоматической оплатой через смарт-контракт.

@@ -61,7 +61,7 @@ export default function DashboardTab({ d, rows, deviations, feed, pulse, toast, 
 
   function exportPDF() {
     const doc = new jsPDF();
-    doc.setFontSize(20); doc.setTextColor(26, 115, 232); doc.text('Mening Deregim', 14, 20);
+    doc.setFontSize(20); doc.setTextColor(26, 115, 232); doc.text('ScanPay', 14, 20);
     doc.setFontSize(10); doc.setTextColor(128); doc.text('Product Intelligence Report', 14, 27);
     doc.setFontSize(12); doc.setTextColor(32); doc.text('Coca-Cola Kazakhstan', 14, 35);
     doc.setFontSize(10); doc.text(`Total: ${ts} detections, ${tr.toLocaleString()} T revenue`, 14, 45);

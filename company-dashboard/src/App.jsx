@@ -44,9 +44,9 @@ function LoginScreen({ onLogin }) {
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ textAlign: 'center', mb: 3 }}>
             <Box sx={{ width: 48, height: 48, borderRadius: '12px', background: 'linear-gradient(135deg, #1a73e8, #34a853)', display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 }}>
-              <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: 16 }}>MD</Typography>
+              <Typography sx={{ color: '#fff', fontWeight: 800, fontSize: 16 }}>SP</Typography>
             </Box>
-            <Typography sx={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>Mening Deregim</Typography>
+            <Typography sx={{ fontSize: 22, fontWeight: 700, color: '#fff' }}>ScanPay</Typography>
             <Typography sx={{ fontSize: 12, color: '#8b949e', mt: 0.5 }}>Data Marketplace for Companies</Typography>
           </Box>
 
@@ -74,7 +74,7 @@ function LoginScreen({ onLogin }) {
       </Card>
 
       <Typography sx={{ position: 'absolute', bottom: 20, color: '#484f58', fontSize: 11 }}>
-        &copy; 2026 Mening Deregim &mdash; Kazakhstan
+        &copy; 2026 ScanPay &mdash; Kazakhstan
       </Typography>
     </Box>
   );

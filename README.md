@@ -1,4 +1,4 @@
-# Mening Deregim — Data Marketplace on Solana
+# ScanPay — Data Marketplace on Solana
 
 > **Consumer Intelligence from Real Purchase Data**
 >
@@ -16,7 +16,7 @@ Every day, millions of Kazakhstani consumers make purchases generating valuable 
 
 ## Solution
 
-**Mening Deregim** is a data marketplace on Solana blockchain where:
+**ScanPay** is a data marketplace on Solana blockchain where:
 
 1. **Users** scan receipts in Telegram → AI extracts data → hash stored on Solana → user earns ~50 T per receipt
 2. **Companies** browse available audience data → AI matches optimal profiles → smart contract executes payment → anonymized data delivered
