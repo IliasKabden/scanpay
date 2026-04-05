@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mening Deregim - Admin</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Google Sans',system-ui,sans-serif;background:#f8f9fa;color:#202124}
+.app{max-width:1200px;margin:0 auto;padding:20px}
+.hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.logo{font-size:20px;font-weight:700;color:#1a73e8}
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:20px}
+.st{background:#fff;border:1px solid #dadce0;border-radius:10px;padding:14px;text-align:center}
+.st-v{font-size:26px;font-weight:700}.st-l{font-size:10px;color:#80868b;margin-top:3px;text-transform:uppercase}
+.sol{background:#eff6ff;border:1px solid #a8c7fa;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:12px;font-size:12px}
+.sol b{color:#1a73e8}
+.sol code{font-size:10px;color:#5f6368;word-break:break-all}
+.demos{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.demo{background:#fff;border:1px solid #dadce0;border-radius:10px;padding:14px}
+.demo h4{font-size:13px;font-weight:600;margin-bottom:8px}
+.bar{display:flex;align-items:center;gap:6px;padding:3px 0}
+.bar-l{width:50px;font-size:11px;color:#5f6368}
+.bar-f{height:18px;border-radius:3px;display:flex;align-items:center;padding:0 6px;font-size:10px;color:#fff;font-weight:600;min-width:20px}
+.tabs{display:flex;gap:2px;border-bottom:2px solid #e0e0e0;margin-bottom:14px}
+.tab{padding:8px 16px;border:none;background:none;font-size:13px;font-weight:500;color:#5f6368;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;font-family:inherit}
+.tab.on{color:#1a73e8;border-bottom-color:#1a73e8;font-weight:600}
+.card{background:#fff;border:1px solid #dadce0;border-radius:10px;overflow:hidden}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10px;color:#80868b;font-weight:600;padding:8px 10px;border-bottom:2px solid #e0e0e0;text-transform:uppercase;letter-spacing:.3px}
+td{padding:8px 10px;font-size:12px;border-bottom:1px solid #f1f3f4;color:#3c4043}
+.pill{padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600}
+.pill-g{background:#e6f4ea;color:#137333}.pill-b{background:#d3e3fd;color:#0b57d0}.pill-r{background:#fce8e6;color:#c5221f}
+.del{padding:4px 8px;border:1px solid #f5c6cb;background:#fff;color:#c5221f;border-radius:4px;font-size:10px;cursor:pointer}
+.del:hover{background:#fce8e6}
+a{color:#1a73e8;text-decoration:none}
+.ld{text-align:center;padding:60px;color:#80868b}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="hdr"><div class="logo">Mening Deregim &mdash; Admin</div></div>
+<div class="ld" id="ld">Loading...</div>
+<div id="main" style="display:none"></div>
+</div>
+<script>
+const A='/api';
+let tab='users';
+async function go(){
+  const[s,u,r,w]=await Promise.all([
+    fetch(A+'/admin/stats').then(r=>r.json()),
+    fetch(A+'/admin/users').then(r=>r.json()),
+    fetch(A+'/admin/receipts').then(r=>r.json()),
+    fetch(A+'/solana/wallet').then(r=>r.json()).catch(()=>({address:'-',balance:0,network:'devnet'}))
+  ]);
+  document.getElementById('ld').style.display='none';
+  const m=document.getElementById('main');m.style.display='block';
+  const colors=['#4285f4','#ea4335','#34a853','#fbbc04','#ff6d01','#46bdc6'];
+  const maxG=Math.max(...(s.byGender||[]).map(g=>g.c),1);
+  const maxA=Math.max(...(s.byAge||[]).map(a=>a.c),1);
+  m.innerHTML=`
+    <div class="stats">
+      ${[['Users',s.users,'#4285f4'],['Receipts',s.receipts,'#34a853'],['Revenue',s.revenue.toLocaleString()+' T','#ea4335'],['Companies',s.companies,'#fbbc04'],['Products',s.products,'#ff6d01'],['Detections',s.detections,'#46bdc6']].map(([l,v,c])=>`<div class="st"><div class="st-v" style="color:${c}">${v}</div><div class="st-l">${l}</div></div>`).join('')}
+    </div>
+    <div class="sol"><b>Solana Wallet</b> <code>${w.address}</code> Balance: <b>${w.balance} SOL</b> (${w.network})</div>
+    <div class="demos">
+      <div class="demo"><h4>Gender</h4>${(s.byGender||[]).map(g=>`<div class="bar"><span class="bar-l">${g.gender}</span><div class="bar-f" style="width:${Math.round(g.c/maxG*100)}%;background:${g.gender==='male'?'#4285f4':'#ea4335'}">${g.c}</div></div>`).join('')||'<div style="color:#bdc1c6">No data</div>'}</div>
+      <div class="demo"><h4>Age Groups</h4>${(s.byAge||[]).map((a,i)=>`<div class="bar"><span class="bar-l">${a.age_group}</span><div class="bar-f" style="width:${Math.round(a.c/maxA*100)}%;background:${colors[i%6]}">${a.c}</div></div>`).join('')||'<div style="color:#bdc1c6">No data</div>'}</div>
+    </div>
+    <div class="tabs">
+      <button class="tab ${tab==='users'?'on':''}" onclick="tab='users';go()">Users (${u.total})</button>
+      <button class="tab ${tab==='receipts'?'on':''}" onclick="tab='receipts';go()">Receipts (${r.total})</button>
+    </div>
+    <div class="card">
+    ${tab==='users'?`<table><thead><tr><th>TG ID</th><th>Name</th><th>Phone</th><th>Age</th><th>Gender</th><th>City</th><th>Receipts</th><th>Created</th><th></th></tr></thead><tbody>
+      ${u.users.map(x=>`<tr><td>${x.telegram_id}</td><td><b>${(x.first_name||'')+' '+(x.last_name||'')}</b><br><span style="font-size:10px;color:#80868b">@${x.username||'-'}</span></td><td>${x.phone||'-'}</td><td><span class="pill pill-b">${x.age_group||'-'}</span></td><td>${x.gender||'-'}</td><td>${x.city||'-'}</td><td><b>${x.receipt_count||0}</b></td><td style="font-size:10px;color:#80868b">${(x.created_at||'').slice(0,10)}</td><td><button class="del" onclick="delUser('${x.telegram_id}')">&times;</button></td></tr>`).join('')}
+    </tbody></table>`
+    :`<table><thead><tr><th>ID</th><th>User</th><th>Store</th><th>Amount</th><th>Category</th><th>Date</th><th>Solana TX</th></tr></thead><tbody>
+      ${r.receipts.map(x=>`<tr><td>${x.id}</td><td>${x.telegram_id}</td><td><b>${x.store_name||'-'}</b></td><td style="color:#1a73e8;font-weight:600">${x.total_amount||0} T</td><td><span class="pill pill-g">${x.category||'-'}</span></td><td style="font-size:10px">${x.date||''}</td><td style="font-size:9px"><a href="https://explorer.solana.com/tx/${x.solana_tx||''}?cluster=devnet" target="_blank">${(x.solana_tx||'-').slice(0,20)}...</a></td></tr>`).join('')}
+    </tbody></table>`}
+    </div>`;
+}
+async function delUser(tid){if(!confirm('Delete user '+tid+'?'))return;await fetch(A+'/admin/users/'+tid,{method:'DELETE'});go()}
+go();
+</script>
+</body>
+</html>

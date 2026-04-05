@@ -1,0 +1,307 @@
+const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+        Header, Footer, AlignmentType, HeadingLevel, BorderStyle, WidthType,
+        ShadingType, PageNumber, PageBreak, LevelFormat } = require('docx');
+const fs = require('fs');
+
+const border = { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" };
+const borders = { top: border, bottom: border, left: border, right: border };
+const cellMargins = { top: 80, bottom: 80, left: 120, right: 120 };
+const PAGE_WIDTH = 11906; // A4
+const CONTENT_WIDTH = 9026; // A4 with 1" margins
+
+function heading(text, level) {
+  return new Paragraph({ heading: level, children: [new TextRun({ text, bold: true })] });
+}
+function para(text, opts = {}) {
+  return new Paragraph({ spacing: { after: 120 }, ...opts, children: [new TextRun({ text, size: 22, ...opts.run })] });
+}
+function boldPara(label, text) {
+  return new Paragraph({ spacing: { after: 120 }, children: [
+    new TextRun({ text: label, bold: true, size: 22 }),
+    new TextRun({ text, size: 22 }),
+  ]});
+}
+function statusFlow(statuses) {
+  return new Paragraph({ spacing: { after: 160 }, children: [
+    new TextRun({ text: "Статусы: ", bold: true, size: 22, color: "5F6368" }),
+    ...statuses.flatMap((s, i) => [
+      new TextRun({ text: s, size: 22, bold: true, color: "1A73E8" }),
+      ...(i < statuses.length - 1 ? [new TextRun({ text: " \u2192 ", size: 22, color: "80868B" })] : []),
+    ]),
+  ]});
+}
+function stageList(stages) {
+  return stages.map((s, i) => new Paragraph({
+    spacing: { after: 60 },
+    indent: { left: 360 },
+    children: [
+      new TextRun({ text: `${i + 1}. `, bold: true, size: 22, color: "1A73E8" }),
+      new TextRun({ text: s, size: 22 }),
+    ],
+  }));
+}
+function tableRow(cells, isHeader = false) {
+  return new TableRow({
+    children: cells.map((text, i) => new TableCell({
+      borders,
+      width: { size: Math.floor(CONTENT_WIDTH / cells.length), type: WidthType.DXA },
+      margins: cellMargins,
+      shading: isHeader ? { fill: "1A73E8", type: ShadingType.CLEAR } : undefined,
+      children: [new Paragraph({ children: [new TextRun({ text: String(text), size: 20, bold: isHeader, color: isHeader ? "FFFFFF" : "202124" })] })],
+    })),
+  });
+}
+function makeTable(headers, rows) {
+  const colWidth = Math.floor(CONTENT_WIDTH / headers.length);
+  return new Table({
+    width: { size: CONTENT_WIDTH, type: WidthType.DXA },
+    columnWidths: headers.map(() => colWidth),
+    rows: [tableRow(headers, true), ...rows.map(r => tableRow(r))],
+  });
+}
+
+const doc = new Document({
+  styles: {
+    default: { document: { run: { font: "Arial", size: 24 } } },
+    paragraphStyles: [
+      { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 36, bold: true, font: "Arial", color: "1A73E8" },
+        paragraph: { spacing: { before: 360, after: 240 }, outlineLevel: 0 } },
+      { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 30, bold: true, font: "Arial", color: "202124" },
+        paragraph: { spacing: { before: 240, after: 180 }, outlineLevel: 1 } },
+      { id: "Heading3", name: "Heading 3", basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: 26, bold: true, font: "Arial", color: "5F6368" },
+        paragraph: { spacing: { before: 180, after: 120 }, outlineLevel: 2 } },
+    ],
+  },
+  numbering: {
+    config: [{
+      reference: "bullets",
+      levels: [{ level: 0, format: LevelFormat.BULLET, text: "\u2022", alignment: AlignmentType.LEFT,
+        style: { paragraph: { indent: { left: 720, hanging: 360 } } } }],
+    }],
+  },
+  sections: [
+    // TITLE PAGE
+    {
+      properties: { page: { size: { width: PAGE_WIDTH, height: 16838 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+      children: [
+        new Paragraph({ spacing: { before: 4000 } }),
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [
+          new TextRun({ text: "\u0411\u0438\u0437\u043D\u0435\u0441-\u043F\u0440\u043E\u0446\u0435\u0441\u0441\u044B \u043F\u043B\u0430\u0442\u0444\u043E\u0440\u043C\u044B", size: 52, bold: true, color: "1A73E8", font: "Arial" }),
+        ]}),
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [
+          new TextRun({ text: "\u041C\u0435\u043D\u0456\u04A3 \u0414\u0435\u0440\u0435\u0433\u0456\u043C", size: 64, bold: true, color: "202124", font: "Arial" }),
+        ]}),
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 600 }, children: [
+          new TextRun({ text: "\u0414\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0430\u0446\u0438\u044F \u0431\u0438\u0437\u043D\u0435\u0441-\u043F\u0440\u043E\u0446\u0435\u0441\u0441\u043E\u0432 \u043C\u0430\u0440\u043A\u0435\u0442\u043F\u043B\u0435\u0439\u0441\u0430 \u0434\u0430\u043D\u043D\u044B\u0445", size: 28, color: "5F6368" }),
+        ]}),
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [
+          new TextRun({ text: "Solana Blockchain \u2022 Claude AI \u2022 Kazakhstan Market", size: 24, color: "80868B" }),
+        ]}),
+        new Paragraph({ spacing: { before: 2000 }, alignment: AlignmentType.CENTER, children: [
+          new TextRun({ text: "\u0410\u043F\u0440\u0435\u043B\u044C 2026", size: 24, color: "80868B" }),
+        ]}),
+      ],
+    },
+    // MAIN CONTENT
+    {
+      properties: {
+        page: { size: { width: PAGE_WIDTH, height: 16838 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } },
+      },
+      headers: {
+        default: new Header({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [
+          new TextRun({ text: "Mening Deregim \u2014 \u0411\u0438\u0437\u043D\u0435\u0441-\u043F\u0440\u043E\u0446\u0435\u0441\u0441\u044B", size: 18, color: "80868B", italics: true }),
+        ]})] }),
+      },
+      footers: {
+        default: new Footer({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [
+          new TextRun({ text: "\u0421\u0442\u0440. ", size: 18, color: "80868B" }),
+          new TextRun({ children: [PageNumber.CURRENT], size: 18, color: "80868B" }),
+        ]})] }),
+      },
+      children: [
+        // 1. OVERVIEW
+        heading("1. \u041E\u0431\u0437\u043E\u0440 \u043F\u043B\u0430\u0442\u0444\u043E\u0440\u043C\u044B", HeadingLevel.HEADING_1),
+        para("\u041C\u0435\u043D\u0456\u04A3 \u0414\u0435\u0440\u0435\u0433\u0456\u043C (My Data) \u2014 \u043C\u0430\u0440\u043A\u0435\u0442\u043F\u043B\u0435\u0439\u0441 \u0434\u0430\u043D\u043D\u044B\u0445 \u043D\u0430 \u0431\u043B\u043E\u043A\u0447\u0435\u0439\u043D\u0435 Solana, \u043A\u043E\u0442\u043E\u0440\u044B\u0439 \u043F\u043E\u0437\u0432\u043E\u043B\u044F\u0435\u0442 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F\u043C \u041A\u0430\u0437\u0430\u0445\u0441\u0442\u0430\u043D\u0430 \u043C\u043E\u043D\u0435\u0442\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0441\u0432\u043E\u0438 \u043F\u043E\u043A\u0443\u043F\u0430\u0442\u0435\u043B\u044C\u0441\u043A\u0438\u0435 \u0434\u0430\u043D\u043D\u044B\u0435. \u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438 \u0441\u043A\u0430\u043D\u0438\u0440\u0443\u044E\u0442 \u0447\u0435\u043A\u0438, AI \u0438\u0437\u0432\u043B\u0435\u043A\u0430\u0435\u0442 \u0434\u0430\u043D\u043D\u044B\u0435, \u0445\u0435\u0448 \u0437\u0430\u043F\u0438\u0441\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u043D\u0430 Solana, \u0430 \u043A\u043E\u043C\u043F\u0430\u043D\u0438\u0438 \u043F\u043E\u043A\u0443\u043F\u0430\u044E\u0442 \u0430\u043D\u043E\u043D\u0438\u043C\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u0441 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u043E\u0439 \u043E\u043F\u043B\u0430\u0442\u043E\u0439 \u0447\u0435\u0440\u0435\u0437 \u0441\u043C\u0430\u0440\u0442-\u043A\u043E\u043D\u0442\u0440\u0430\u043A\u0442."),
+        heading("\u0422\u0440\u0438 \u0441\u0442\u043E\u0440\u043E\u043D\u044B \u043F\u043B\u0430\u0442\u0444\u043E\u0440\u043C\u044B", HeadingLevel.HEADING_3),
+        makeTable(["\u0420\u043E\u043B\u044C", "\u0418\u043D\u0442\u0435\u0440\u0444\u0435\u0439\u0441", "\u0424\u0443\u043D\u043A\u0446\u0438\u0438"], [
+          ["\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438 (B2C)", "Telegram Mini App", "\u0421\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0447\u0435\u043A\u043E\u0432, \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u043E\u043A, \u0432\u044B\u0432\u043E\u0434 \u0441\u0440\u0435\u0434\u0441\u0442\u0432"],
+          ["\u041A\u043E\u043C\u043F\u0430\u043D\u0438\u0438 (B2B)", "Company Dashboard", "\u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0442\u043E\u0432\u0430\u0440\u043E\u0432, \u0430\u043D\u0430\u043B\u0438\u0442\u0438\u043A\u0430, \u043F\u043E\u043A\u0443\u043F\u043A\u0430 \u0434\u0430\u043D\u043D\u044B\u0445"],
+          ["\u0410\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440\u044B", "Admin Panel", "\u041C\u043E\u0434\u0435\u0440\u0430\u0446\u0438\u044F, \u0430\u043D\u0430\u043B\u0438\u0442\u0438\u043A\u0430, \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435"],
+        ]),
+        new Paragraph({ children: [new PageBreak()] }),
+
+        // 2. USER LIFECYCLE
+        heading("2. \u0411\u041F-1: \u0416\u0438\u0437\u043D\u0435\u043D\u043D\u044B\u0439 \u0446\u0438\u043A\u043B \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044F", HeadingLevel.HEADING_1),
+        statusFlow(["registered", "onboarded", "active", "suspended", "deleted"]),
+        heading("\u042D\u0442\u0430\u043F\u044B", HeadingLevel.HEADING_3),
+        ...stageList([
+          "\u0420\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044F \u0447\u0435\u0440\u0435\u0437 Telegram Bot \u2192 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u0435 \u043A\u043E\u0448\u0435\u043B\u044C\u043A\u0430 Solana",
+          "\u041E\u043D\u0431\u043E\u0440\u0434\u0438\u043D\u0433: \u0442\u0435\u043B\u0435\u0444\u043E\u043D, \u0432\u043E\u0437\u0440\u0430\u0441\u0442, \u043F\u043E\u043B, \u0433\u043E\u0440\u043E\u0434, \u044F\u0437\u044B\u043A",
+          "\u0410\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C: \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0447\u0435\u043A\u043E\u0432, \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u043E\u043A",
+          "\u0412\u044B\u0432\u043E\u0434 \u0441\u0440\u0435\u0434\u0441\u0442\u0432 \u043D\u0430 \u043A\u043E\u0448\u0435\u043B\u0435\u043A Solana",
+          "\u041F\u0440\u0438\u043E\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430/\u0443\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430 (\u0430\u0434\u043C\u0438\u043D)",
+        ]),
+        new Paragraph({ children: [new PageBreak()] }),
+
+        // 3. RECEIPT PIPELINE
+        heading("3. \u0411\u041F-2: \u041E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0430 \u0447\u0435\u043A\u043E\u0432 (Receipt Pipeline)", HeadingLevel.HEADING_1),
+        statusFlow(["pending", "approved", "matched", "sold"]),
+        heading("\u042D\u0442\u0430\u043F\u044B", HeadingLevel.HEADING_3),
+        ...stageList([
+          "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0444\u043E\u0442\u043E \u0447\u0435\u043A\u0430 (base64)",
+          "AI OCR: Claude \u0438\u0437\u0432\u043B\u0435\u043A\u0430\u0435\u0442 \u043C\u0430\u0433\u0430\u0437\u0438\u043D, \u0441\u0443\u043C\u043C\u0443, \u0442\u043E\u0432\u0430\u0440\u044B, \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044E, \u0434\u0430\u0442\u0443",
+          "\u0410\u0432\u0442\u043E-\u043C\u043E\u0434\u0435\u0440\u0430\u0446\u0438\u044F: \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u0434\u0443\u0431\u043B\u0438\u043A\u0430\u0442\u043E\u0432, \u0430\u043D\u043E\u043C\u0430\u043B\u0438\u0439 \u0446\u0435\u043D\u044B, \u0447\u0430\u0441\u0442\u043E\u0442\u044B, \u0434\u0430\u0442\u044B",
+          "\u0425\u0435\u0448\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 SHA256 \u2192 \u0437\u0430\u043F\u0438\u0441\u044C \u0432 \u0411\u0414 + Solana",
+          "\u0414\u0435\u0442\u0435\u043A\u0446\u0438\u044F \u0442\u043E\u0432\u0430\u0440\u043E\u0432 \u043A\u043E\u043C\u043F\u0430\u043D\u0438\u0439 \u043F\u043E \u043A\u043B\u044E\u0447\u0435\u0432\u044B\u043C \u0441\u043B\u043E\u0432\u0430\u043C",
+          "\u0414\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u0434\u043B\u044F \u043F\u0440\u043E\u0434\u0430\u0436\u0438 \u043A\u043E\u043C\u043F\u0430\u043D\u0438\u044F\u043C",
+        ]),
+        heading("\u0410\u0432\u0442\u043E-\u043C\u043E\u0434\u0435\u0440\u0430\u0446\u0438\u044F", HeadingLevel.HEADING_3),
+        makeTable(["\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430", "\u0423\u0441\u043B\u043E\u0432\u0438\u0435", "\u0420\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442"], [
+          ["\u0414\u0443\u0431\u043B\u0438\u043A\u0430\u0442", "\u0422\u043E\u0442 \u0436\u0435 \u043C\u0430\u0433\u0430\u0437\u0438\u043D + \u0441\u0443\u043C\u043C\u0430 + \u0434\u0430\u0442\u0430", "\u0424\u043B\u0430\u0433 \u2192 \u043E\u0447\u0435\u0440\u0435\u0434\u044C"],
+          ["\u0410\u043D\u043E\u043C\u0430\u043B\u0438\u044F \u0446\u0435\u043D\u044B", "> 500,000 \u0422 \u0438\u043B\u0438 < 50 \u0422", "\u0424\u043B\u0430\u0433 \u2192 \u043E\u0447\u0435\u0440\u0435\u0434\u044C"],
+          ["\u0427\u0430\u0441\u0442\u043E\u0442\u0430", "> 10 \u0447\u0435\u043A\u043E\u0432/\u0434\u0435\u043D\u044C", "\u0424\u043B\u0430\u0433 \u2192 \u043E\u0447\u0435\u0440\u0435\u0434\u044C"],
+          ["\u0414\u0430\u0442\u0430", "\u0414\u0430\u0442\u0430 \u0447\u0435\u043A\u0430 \u0432 \u0431\u0443\u0434\u0443\u0449\u0435\u043C", "\u0424\u043B\u0430\u0433 \u2192 \u043E\u0447\u0435\u0440\u0435\u0434\u044C"],
+        ]),
+        new Paragraph({ children: [new PageBreak()] }),
+
+        // 4. COMPANY LIFECYCLE
+        heading("4. \u0411\u041F-3: \u0416\u0438\u0437\u043D\u0435\u043D\u043D\u044B\u0439 \u0446\u0438\u043A\u043B \u043A\u043E\u043C\u043F\u0430\u043D\u0438\u0438", HeadingLevel.HEADING_1),
+        statusFlow(["pending", "active", "suspended"]),
+        heading("\u042D\u0442\u0430\u043F\u044B", HeadingLevel.HEADING_3),
+        ...stageList([
+          "\u0420\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044F \u043A\u043E\u043C\u043F\u0430\u043D\u0438\u0438 (\u043D\u0430\u0437\u0432\u0430\u043D\u0438\u0435, \u043E\u0442\u0440\u0430\u0441\u043B\u044C)",
+          "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 \u0442\u043E\u0432\u0430\u0440\u043E\u0432 (\u043A\u043B\u044E\u0447\u0435\u0432\u044B\u0435 \u0441\u043B\u043E\u0432\u0430, \u0448\u0442\u0440\u0438\u0445\u043A\u043E\u0434\u044B, \u0420\u0420\u0426)",
+          "\u0410\u043A\u0442\u0438\u0432\u0430\u0446\u0438\u044F \u0442\u0440\u0435\u043A\u0438\u043D\u0433\u0430 \u0442\u043E\u0432\u0430\u0440\u043E\u0432 \u0432 \u0447\u0435\u043A\u0430\u0445",
+          "\u041F\u043E\u043A\u0443\u043F\u043A\u0430 \u0430\u043D\u043E\u043D\u0438\u043C\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u0445 \u0434\u0430\u043D\u043D\u044B\u0445 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438",
+          "\u0410\u043D\u0430\u043B\u0438\u0442\u0438\u043A\u0430 \u0438 BI-\u043E\u0442\u0447\u0435\u0442\u044B",
+        ]),
+        new Paragraph({ children: [new PageBreak()] }),
+
+        // 5. DATA PURCHASE
+        heading("5. \u0411\u041F-4: \u041F\u043E\u043A\u0443\u043F\u043A\u0430 \u0434\u0430\u043D\u043D\u044B\u0445 (Data Purchase Flow)", HeadingLevel.HEADING_1),
+        statusFlow(["pending", "confirmed", "delivered", "disputed", "refunded"]),
+        heading("\u042D\u0442\u0430\u043F\u044B", HeadingLevel.HEADING_3),
+        ...stageList([
+          "\u041A\u043E\u043C\u043F\u0430\u043D\u0438\u044F \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442 \u0437\u0430\u043F\u0440\u043E\u0441: \u043A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044F, \u0431\u044E\u0434\u0436\u0435\u0442, \u0433\u043E\u0440\u043E\u0434",
+          "AI-\u043C\u0430\u0442\u0447\u0438\u043D\u0433: Claude \u0430\u0432\u0442\u043E\u043D\u043E\u043C\u043D\u043E \u043F\u043E\u0434\u0431\u0438\u0440\u0430\u0435\u0442 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044E \u0438 \u043D\u0430\u0437\u043D\u0430\u0447\u0430\u0435\u0442 \u0446\u0435\u043D\u0443",
+          "\u0426\u0435\u043D\u043E\u043E\u0431\u0440\u0430\u0437\u043E\u0432\u0430\u043D\u0438\u0435: 5-50M lamports \u0437\u0430 \u043F\u0440\u043E\u0444\u0438\u043B\u044C (\u223C50-500 \u0422)",
+          "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u0438 \u043E\u043F\u043B\u0430\u0442\u0430 \u0447\u0435\u0440\u0435\u0437 \u0441\u043C\u0430\u0440\u0442-\u043A\u043E\u043D\u0442\u0440\u0430\u043A\u0442 Solana",
+          "\u0414\u043E\u0441\u0442\u0430\u0432\u043A\u0430 \u0430\u043D\u043E\u043D\u0438\u043C\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u0445 \u0434\u0430\u043D\u043D\u044B\u0445 \u043A\u043E\u043C\u043F\u0430\u043D\u0438\u0438",
+          "\u0423\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u0435 \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0435\u0439 \u043E \u043F\u0440\u043E\u0434\u0430\u0436\u0435 \u0438\u0445 \u0434\u0430\u043D\u043D\u044B\u0445",
+        ]),
+        new Paragraph({ children: [new PageBreak()] }),
+
+        // 6. WITHDRAWAL
+        heading("6. \u0411\u041F-5: \u0412\u044B\u0432\u043E\u0434 \u0441\u0440\u0435\u0434\u0441\u0442\u0432 (Withdrawal Flow)", HeadingLevel.HEADING_1),
+        statusFlow(["pending", "processing", "completed", "failed"]),
+        heading("\u042D\u0442\u0430\u043F\u044B", HeadingLevel.HEADING_3),
+        ...stageList([
+          "\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C \u0437\u0430\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u0435\u0442 \u0432\u044B\u0432\u043E\u0434 \u0441\u0443\u043C\u043C\u044B",
+          "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u0431\u0430\u043B\u0430\u043D\u0441\u0430 \u0438 \u043C\u0438\u043D\u0438\u043C\u0430\u043B\u044C\u043D\u043E\u0439 \u0441\u0443\u043C\u043C\u044B (5M lamports \u2248 50 \u0422)",
+          "\u0417\u0430\u044F\u0432\u043A\u0430 \u043F\u043E\u043F\u0430\u0434\u0430\u0435\u0442 \u0432 \u043E\u0447\u0435\u0440\u0435\u0434\u044C \u0430\u0434\u043C\u0438\u043D\u0430",
+          "\u0410\u0434\u043C\u0438\u043D \u043E\u0431\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u0442: \u043F\u0435\u0440\u0435\u0432\u043E\u0434 SOL \u043D\u0430 \u043A\u043E\u0448\u0435\u043B\u0435\u043A",
+          "\u0421\u0442\u0430\u0442\u0443\u0441 \u043E\u0431\u043D\u043E\u0432\u043B\u044F\u0435\u0442\u0441\u044F: completed / failed",
+        ]),
+        new Paragraph({ children: [new PageBreak()] }),
+
+        // 7. MODERATION
+        heading("7. \u0411\u041F-6: \u041C\u043E\u0434\u0435\u0440\u0430\u0446\u0438\u044F \u0438 \u043A\u043E\u043D\u0442\u0440\u043E\u043B\u044C \u043A\u0430\u0447\u0435\u0441\u0442\u0432\u0430", HeadingLevel.HEADING_1),
+        para("\u0421\u0438\u0441\u0442\u0435\u043C\u0430 \u043C\u043E\u0434\u0435\u0440\u0430\u0446\u0438\u0438 \u0432\u043A\u043B\u044E\u0447\u0430\u0435\u0442 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u043F\u0440\u0438 \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0438 \u0447\u0435\u043A\u043E\u0432 \u0438 \u0440\u0443\u0447\u043D\u0443\u044E \u043E\u0447\u0435\u0440\u0435\u0434\u044C \u043C\u043E\u0434\u0435\u0440\u0430\u0446\u0438\u0438 \u0432 Admin Panel."),
+        heading("\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0435 \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0438", HeadingLevel.HEADING_3),
+        para("\u041F\u0440\u0438 \u043A\u0430\u0436\u0434\u043E\u043C \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0438 \u0447\u0435\u043A\u0430 \u0441\u0438\u0441\u0442\u0435\u043C\u0430 \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0435\u0442 4 \u0443\u0441\u043B\u043E\u0432\u0438\u044F. \u0415\u0441\u043B\u0438 \u0445\u043E\u0442\u044F \u0431\u044B \u043E\u0434\u043D\u043E \u0441\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u0442, \u0447\u0435\u043A \u043F\u043E\u043F\u0430\u0434\u0430\u0435\u0442 \u0432 \u043E\u0447\u0435\u0440\u0435\u0434\u044C \u043C\u043E\u0434\u0435\u0440\u0430\u0446\u0438\u0438 \u0441\u043E \u0441\u0442\u0430\u0442\u0443\u0441\u043E\u043C pending."),
+        heading("\u0420\u0443\u0447\u043D\u0430\u044F \u043C\u043E\u0434\u0435\u0440\u0430\u0446\u0438\u044F", HeadingLevel.HEADING_3),
+        para("\u0410\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440 \u0432\u0438\u0434\u0438\u0442 \u043E\u0447\u0435\u0440\u0435\u0434\u044C \u0432 Admin Panel, \u043C\u043E\u0436\u0435\u0442 \u043E\u0434\u043E\u0431\u0440\u0438\u0442\u044C \u0438\u043B\u0438 \u043E\u0442\u043A\u043B\u043E\u043D\u0438\u0442\u044C \u043A\u0430\u0436\u0434\u044B\u0439 \u044D\u043B\u0435\u043C\u0435\u043D\u0442. \u0412\u0441\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F \u043B\u043E\u0433\u0438\u0440\u0443\u044E\u0442\u0441\u044F \u0432 audit_log."),
+        new Paragraph({ children: [new PageBreak()] }),
+
+        // 8. PRODUCT DETECTION
+        heading("8. \u0411\u041F-7: \u0414\u0435\u0442\u0435\u043A\u0446\u0438\u044F \u0442\u043E\u0432\u0430\u0440\u043E\u0432", HeadingLevel.HEADING_1),
+        ...stageList([
+          "\u041A\u043E\u043C\u043F\u0430\u043D\u0438\u044F \u0434\u043E\u0431\u0430\u0432\u043B\u044F\u0435\u0442 \u0442\u043E\u0432\u0430\u0440\u044B \u0441 \u043A\u043B\u044E\u0447\u0435\u0432\u044B\u043C\u0438 \u0441\u043B\u043E\u0432\u0430\u043C\u0438 (RU/KZ \u0432\u0430\u0440\u0438\u0430\u0446\u0438\u0438)",
+          "\u0421\u0438\u0441\u0442\u0435\u043C\u0430 \u0441\u043A\u0430\u043D\u0438\u0440\u0443\u0435\u0442 \u0432\u0441\u0435 \u0447\u0435\u043A\u0438 \u043D\u0430 \u0441\u043E\u0432\u043F\u0430\u0434\u0435\u043D\u0438\u044F",
+          "\u041F\u0440\u0438 \u0441\u043E\u0432\u043F\u0430\u0434\u0435\u043D\u0438\u0438 \u2192 \u0437\u0430\u043F\u0438\u0441\u044C \u0434\u0435\u0442\u0435\u043A\u0446\u0438\u0438 (\u043C\u0430\u0433\u0430\u0437\u0438\u043D, \u0433\u043E\u0440\u043E\u0434, \u0446\u0435\u043D\u0430, \u043A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E)",
+          "\u041E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435 \u0434\u0430\u0448\u0431\u043E\u0440\u0434\u0430 \u043A\u043E\u043C\u043F\u0430\u043D\u0438\u0438 \u0432 \u0440\u0435\u0430\u043B\u044C\u043D\u043E\u043C \u0432\u0440\u0435\u043C\u0435\u043D\u0438",
+          "\u0410\u043B\u0435\u0440\u0442\u044B \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u0438\u044F \u0446\u0435\u043D \u043E\u0442 \u0420\u0420\u0426 (>10%)",
+        ]),
+        new Paragraph({ children: [new PageBreak()] }),
+
+        // 9. NOTIFICATIONS
+        heading("9. \u0411\u041F-8: \u0423\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F", HeadingLevel.HEADING_1),
+        makeTable(["\u0422\u0438\u043F", "\u041A\u0430\u043D\u0430\u043B", "\u0422\u0440\u0438\u0433\u0433\u0435\u0440"], [
+          ["\u0427\u0435\u043A \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u0430\u043D", "Telegram Bot", "\u041F\u043E\u0441\u043B\u0435 \u0443\u0441\u043F\u0435\u0448\u043D\u043E\u0433\u043E \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u044F"],
+          ["\u0414\u0430\u043D\u043D\u044B\u0435 \u043F\u0440\u043E\u0434\u0430\u043D\u044B", "Telegram Bot", "\u041F\u043E\u0441\u043B\u0435 \u043F\u043E\u043A\u0443\u043F\u043A\u0438 \u043A\u043E\u043C\u043F\u0430\u043D\u0438\u0435\u0439"],
+          ["\u0412\u044B\u0432\u043E\u0434 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u0430\u043D", "Telegram Bot", "\u041F\u043E\u0441\u043B\u0435 \u043E\u0431\u0440\u0430\u0431\u043E\u0442\u043A\u0438 \u0432\u044B\u0432\u043E\u0434\u0430"],
+          ["\u0415\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u043E\u0435 \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u0435", "Telegram Bot", "\u0415\u0436\u0435\u0434\u043D\u0435\u0432\u043D\u043E (cron)"],
+        ]),
+        new Paragraph({ children: [new PageBreak()] }),
+
+        // 10. ARCHITECTURE
+        heading("10. \u0410\u0440\u0445\u0438\u0442\u0435\u043A\u0442\u0443\u0440\u0430 \u0438 \u0442\u0435\u0445\u043D\u043E\u043B\u043E\u0433\u0438\u0438", HeadingLevel.HEADING_1),
+        makeTable(["\u041A\u043E\u043C\u043F\u043E\u043D\u0435\u043D\u0442", "\u0422\u0435\u0445\u043D\u043E\u043B\u043E\u0433\u0438\u044F", "\u041D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435"], [
+          ["Backend", "Node.js + Express + SQLite", "API \u0441\u0435\u0440\u0432\u0435\u0440, \u0431\u0438\u0437\u043D\u0435\u0441-\u043B\u043E\u0433\u0438\u043A\u0430"],
+          ["Company Dashboard", "React + MUI + Recharts + Leaflet", "\u0414\u0430\u0448\u0431\u043E\u0440\u0434 \u043A\u043E\u043C\u043F\u0430\u043D\u0438\u0439"],
+          ["Admin Panel", "React + MUI + DataGrid", "\u0423\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u043F\u043B\u0430\u0442\u0444\u043E\u0440\u043C\u043E\u0439"],
+          ["Telegram App", "React Mini App", "\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C\u0441\u043A\u0438\u0439 \u0438\u043D\u0442\u0435\u0440\u0444\u0435\u0439\u0441"],
+          ["Blockchain", "Solana (devnet) + Anchor", "\u0425\u0435\u0448\u0438, \u0442\u0440\u0430\u043D\u0437\u0430\u043A\u0446\u0438\u0438, \u043F\u043B\u0430\u0442\u0435\u0436\u0438"],
+          ["AI", "Claude API (Anthropic)", "OCR \u0447\u0435\u043A\u043E\u0432, AI-\u043C\u0430\u0442\u0447\u0438\u043D\u0433"],
+          ["\u0421\u0435\u0440\u0432\u0435\u0440", "Ubuntu + Nginx + PM2 + SSL", "\u0425\u043E\u0441\u0442\u0438\u043D\u0433, \u043F\u0440\u043E\u043A\u0441\u0438, HTTPS"],
+        ]),
+        new Paragraph({ children: [new PageBreak()] }),
+
+        // 11. DATABASE
+        heading("11. \u0421\u0445\u0435\u043C\u0430 \u0431\u0430\u0437\u044B \u0434\u0430\u043D\u043D\u044B\u0445", HeadingLevel.HEADING_1),
+        para("\u0411\u0430\u0437\u0430 \u0434\u0430\u043D\u043D\u044B\u0445: SQLite (mening_deregim.db) \u2014 9 \u0442\u0430\u0431\u043B\u0438\u0446:"),
+        makeTable(["\u0422\u0430\u0431\u043B\u0438\u0446\u0430", "\u041D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435", "\u041A\u043B\u044E\u0447\u0435\u0432\u044B\u0435 \u043F\u043E\u043B\u044F"], [
+          ["users", "\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438 Telegram", "telegram_id, wallet, phone, city, onboarded"],
+          ["receipts", "\u0421\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u0435 \u0447\u0435\u043A\u0438", "store, amount, items, hash, status"],
+          ["purchases", "\u041F\u043E\u043A\u0443\u043F\u043A\u0438 \u0434\u0430\u043D\u043D\u044B\u0445", "company, receipt_ids, paid, ai_reasoning, status"],
+          ["companies", "\u041A\u043E\u043C\u043F\u0430\u043D\u0438\u0438-\u043F\u043E\u043A\u0443\u043F\u0430\u0442\u0435\u043B\u0438", "name, industry, status"],
+          ["company_products", "\u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0442\u043E\u0432\u0430\u0440\u043E\u0432", "product_name, keywords, barcode, rrp"],
+          ["product_detections", "\u0414\u0435\u0442\u0435\u043A\u0446\u0438\u0438 \u0432 \u0447\u0435\u043A\u0430\u0445", "product_id, receipt_id, store, city, price"],
+          ["withdrawals", "\u0417\u0430\u044F\u0432\u043A\u0438 \u043D\u0430 \u0432\u044B\u0432\u043E\u0434", "telegram_id, amount, wallet, status"],
+          ["audit_log", "\u041B\u043E\u0433 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0439", "action, entity_type, entity_id, actor"],
+          ["moderation_queue", "\u041E\u0447\u0435\u0440\u0435\u0434\u044C \u043C\u043E\u0434\u0435\u0440\u0430\u0446\u0438\u0438", "entity_type, entity_id, reason, status"],
+        ]),
+        new Paragraph({ children: [new PageBreak()] }),
+
+        // 12. API
+        heading("12. API Endpoints", HeadingLevel.HEADING_1),
+        heading("\u041F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0438", HeadingLevel.HEADING_3),
+        makeTable(["Method", "Endpoint", "\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435"], [
+          ["POST", "/api/user/register", "\u0420\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044F \u0441 \u043A\u043E\u0448\u0435\u043B\u044C\u043A\u043E\u043C"],
+          ["POST", "/api/user/onboard", "\u041E\u043D\u0431\u043E\u0440\u0434\u0438\u043D\u0433 (\u0434\u0435\u043C\u043E\u0433\u0440\u0430\u0444\u0438\u044F)"],
+          ["POST", "/api/receipt/scan", "\u0421\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0447\u0435\u043A\u0430 (AI OCR)"],
+          ["GET", "/api/user/profile/:id", "\u041F\u0440\u043E\u0444\u0438\u043B\u044C \u0438 \u0437\u0430\u0440\u0430\u0431\u043E\u0442\u043E\u043A"],
+          ["POST", "/api/user/withdraw", "\u0417\u0430\u043F\u0440\u043E\u0441 \u043D\u0430 \u0432\u044B\u0432\u043E\u0434"],
+        ]),
+        heading("\u041A\u043E\u043C\u043F\u0430\u043D\u0438\u0438", HeadingLevel.HEADING_3),
+        makeTable(["Method", "Endpoint", "\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435"], [
+          ["POST", "/api/company/register", "\u0420\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u044F \u043A\u043E\u043C\u043F\u0430\u043D\u0438\u0438"],
+          ["POST", "/api/company/products", "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0442\u043E\u0432\u0430\u0440\u0430"],
+          ["POST", "/api/company/match", "AI-\u043C\u0430\u0442\u0447\u0438\u043D\u0433 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438"],
+          ["POST", "/api/company/purchase", "\u041F\u043E\u043A\u0443\u043F\u043A\u0430 \u0434\u0430\u043D\u043D\u044B\u0445"],
+          ["GET", "/api/company/dashboard/:name", "\u0410\u043D\u0430\u043B\u0438\u0442\u0438\u043A\u0430"],
+          ["GET", "/api/company/bi/:name", "BI-\u043E\u0442\u0447\u0435\u0442\u044B"],
+        ]),
+        heading("\u0410\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435", HeadingLevel.HEADING_3),
+        makeTable(["Method", "Endpoint", "\u041E\u043F\u0438\u0441\u0430\u043D\u0438\u0435"], [
+          ["GET", "/api/admin/stats", "\u0421\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043A\u0430 \u043F\u043B\u0430\u0442\u0444\u043E\u0440\u043C\u044B"],
+          ["GET", "/api/admin/moderation", "\u041E\u0447\u0435\u0440\u0435\u0434\u044C \u043C\u043E\u0434\u0435\u0440\u0430\u0446\u0438\u0438"],
+          ["POST", "/api/admin/moderation/:id/approve", "\u041E\u0434\u043E\u0431\u0440\u0438\u0442\u044C"],
+          ["POST", "/api/admin/moderation/:id/reject", "\u041E\u0442\u043A\u043B\u043E\u043D\u0438\u0442\u044C"],
+          ["GET", "/api/admin/withdrawals", "\u0417\u0430\u044F\u0432\u043A\u0438 \u043D\u0430 \u0432\u044B\u0432\u043E\u0434"],
+          ["PUT", "/api/admin/withdrawals/:id/process", "\u041E\u0431\u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C \u0432\u044B\u0432\u043E\u0434"],
+          ["GET", "/api/admin/audit-log", "\u041B\u043E\u0433 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0439"],
+          ["GET", "/api/admin/analytics", "\u0410\u043D\u0430\u043B\u0438\u0442\u0438\u043A\u0430 \u0438 \u0432\u043E\u0440\u043E\u043D\u043A\u0438"],
+        ]),
+      ],
+    },
+  ],
+});
+
+Packer.toBuffer(doc).then(buffer => {
+  fs.writeFileSync(__dirname + '/business-processes.docx', buffer);
+  console.log('DOCX created: docs/business-processes.docx');
+});
